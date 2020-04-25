@@ -17,7 +17,7 @@ def get_rbf_kernel(gamma):
         s2, _ = x2.shape
         norm1 = np.ones((s2, 1)).dot(np.atleast_2d(np.sum(x1 ** 2, axis=1))).T
         norm2 = np.ones((s1, 1)).dot(np.atleast_2d(np.sum(x2 ** 2, axis=1)))
-        return np.exp(- gamma * (norm1 + norm2 - 2 * np.dot(x1, x2.T)))
+        return np.exp(- gamma * (norm1 + norm2 - 2 * x1.dot(x2.T)))
     return rbf_kernel
 
 
