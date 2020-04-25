@@ -159,9 +159,9 @@ class SVM:
         else:
             # Compute objective function at a2 = L and a2 = H
             L_obj, H_obj = self.__compute_objective_function(y1, y2, F1, F2, alpha1, alpha2, s, k11, k12, k22, L, H)
-            if L_obj > H_obj + self.__eps:
+            if L_obj < H_obj - self.__eps:
                 a2 = L
-            elif L_obj < H_obj - self.__eps:
+            elif L_obj > H_obj + self.__eps:
                 a2 = H
             else:
                 a2 = alpha2
