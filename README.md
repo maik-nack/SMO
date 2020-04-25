@@ -40,12 +40,24 @@ model.fit_modification2(X_train, y_train)
 
 ## Predict new observations
 
+Method for classification of samples.
+
 ```python
 y_hat = model.predict(X_test)
 ```
 
 ## Decision function
 
+Method for getting a value of `w * x - b`.
+
 ```python
 decision = model.decision_function(X)
+```
+
+## Score
+
+Method for getting the accuracy on the given data and labels.
+
+```python
+score = model.score(X, y)
 ```

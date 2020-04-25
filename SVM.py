@@ -320,3 +320,7 @@ class SVM:
 
     def predict(self, X):
         return np.sign(self.decision_function(X))
+
+    def score(self, X, y):
+        y = np.asarray(y)
+        return np.sum(self.predict(X) == y) / y.shape[0]
