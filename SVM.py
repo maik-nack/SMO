@@ -47,9 +47,11 @@ class SVM:
         self.__i_low, self.__i_up = None, None
         self.__b_low, self.__b_up = None, None
         self.__I_0, self.__I_1, self.__I_2, self.__I_3, self.__I_4 = None, None, None, None, None
-        self.__support_vectors = None
         self.__coef = None
+        self.__dual_coef = None
         self.__threshold = None
+        self.support = None
+        self.support_vectors = None
 
     def __get_gamma(self, X):
         if isinstance(self.gamma, float):
@@ -251,12 +253,12 @@ class SVM:
         return X, y, max_iter
 
     def __set_result(self, X, y):
-        support = self.__alpha > self.__eps
-        self.__support_vectors = X[support]
-        self.__dual_coef = self.__alpha[support] * y[support]
+        self.support = np.where(self.__alpha > self.__eps)[0]
+        self.support_vectors = X[self.support]
+        self.__dual_coef = self.__alpha[self.support] * y[self.support]
         self.__threshold = (self.__b_low + self.__b_up) / 2
         if self.kernel == 'linear':
-            self.__coef = np.atleast_2d(np.sum(self.__dual_coef * self.__support_vectors.T, axis=1))
+            self.__coef = np.atleast_2d(np.sum(self.__dual_coef * self.support_vectors.T, axis=1))
 
     def fit_modification1(self, X, y):
         X, y, max_iter = self.__initialize_fitting(X, y)
@@ -316,7 +318,7 @@ class SVM:
     def decision_function(self, X):
         if self.kernel == 'linear':
             return self.__coef.dot(X.T).ravel() - self.__threshold
-        return np.sum(self.__dual_coef * self.__kernel_func(X, self.__support_vectors), axis=1) - self.__threshold
+        return np.sum(self.__dual_coef * self.__kernel_func(X, self.support_vectors), axis=1) - self.__threshold
 
     def predict(self, X):
         return np.sign(self.decision_function(X))
