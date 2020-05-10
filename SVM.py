@@ -95,41 +95,41 @@ class SVM:
         return Psi_L, Psi_H
 
     def __update_I(self, i, y, a):
-        if i in self.__I_0:
-            self.__I_0.remove(i)
+        if self.__I_0[i]:
+            self.__I_0[i] = False
         else:
             if y == 1:
-                if i in self.__I_1:
-                    self.__I_1.remove(i)
+                if self.__I_1[i]:
+                    self.__I_1[i] = False
                 else:
-                    self.__I_3.remove(i)
+                    self.__I_3[i] = False
             else:
-                if i in self.__I_2:
-                    self.__I_2.remove(i)
+                if self.__I_2[i]:
+                    self.__I_2[i] = False
                 else:
-                    self.__I_4.remove(i)
+                    self.__I_4[i] = False
         if a <= self.__eps or a >= self.C - self.__eps:
             if y == 1:
                 if a <= self.__eps:
-                    self.__I_1.add(i)
+                    self.__I_1[i] = True
                 else:
-                    self.__I_3.add(i)
+                    self.__I_3[i] = True
             else:
                 if a <= self.__eps:
-                    self.__I_4.add(i)
+                    self.__I_4[i] = True
                 else:
-                    self.__I_2.add(i)
+                    self.__I_2[i] = True
         else:
-            self.__I_0.add(i)
+            self.__I_0[i] = True
 
     def __update_I_low_up(self, I_low, I_up, i):
-        if i in self.__I_3 or i in self.__I_4:
-            I_low.add(i)
+        if self.__I_3[i] or self.__I_4[i]:
+            I_low[i] = True
         else:
-            I_up.add(i)
+            I_up[i] = True
 
     def __get_b_i(self, I, argfunc):
-        I = list(I)
+        I = np.where(I)[0]
         F = self.__fcache[I]
         i = I[argfunc(F)]
         b = self.__fcache[i]
@@ -171,10 +171,9 @@ class SVM:
             return False
         a1 = alpha1 + s * (alpha2 - a2)
         # Update fcache[i] for i in I_0 using new Lagrange multipliers
-        for i in self.__I_0:
-            ki1 = self.__kernel_func(X[i], X[i1])[0, 0]
-            ki2 = self.__kernel_func(X[i], X[i2])[0, 0]
-            self.__fcache[i] = self.__fcache[i] + y1 * (a1 - alpha1) * ki1 + y2 * (a2 - alpha2) * ki2
+        ki1 = self.__kernel_func(X[self.__I_0], X[i1]).ravel()
+        ki2 = self.__kernel_func(X[self.__I_0], X[i2]).ravel()
+        self.__fcache[self.__I_0] += y1 * (a1 - alpha1) * ki1 + y2 * (a2 - alpha2) * ki2
         # Store a1 and a2 in the alpha array
         self.__alpha[i1] = a1
         self.__alpha[i2] = a2
@@ -196,30 +195,30 @@ class SVM:
         return np.sum(self.__kernel_func(X[i], X).ravel() * (self.__alpha * y)) - y[i]
 
     def __examine_example(self, i2, X, y):
-        if i2 in self.__I_0:
+        if self.__I_0[i2]:
             F2 = self.__fcache[i2]
         else:
             F2 = self.__compute_F(X, y, i2)  # compute F_i2
             self.__fcache[i2] = F2
             # Update (b_low, i_low) or (b_up, i_up) using (F2, i2)
-            if (i2 in self.__I_1 or i2 in self.__I_2) and F2 < self.__b_up:
+            if (self.__I_1[i2] or self.__I_2[i2]) and F2 < self.__b_up:
                 self.__b_up, self.__i_up = F2, i2
-            elif (i2 in self.__I_3 or i2 in self.__I_4) and F2 > self.__b_low:
+            elif (self.__I_3[i2] or self.__I_4[i2]) and F2 > self.__b_low:
                 self.__b_low, self.__i_low = F2, i2
         # Check optimality using current b_low and b_up
         # If violated, find an index i1 to do joint optimization with i2
         optimality = True
         i1 = 0
-        if (i2 in self.__I_0 or i2 in self.__I_1 or i2 in self.__I_2) and self.__b_low - F2 > 2 * self.tol:
+        if (self.__I_0[i2] or self.__I_1[i2] or self.__I_2[i2]) and self.__b_low - F2 > 2 * self.tol:
             optimality = False
             i1 = self.__i_low
-        if (i2 in self.__I_0 or i2 in self.__I_3 or i2 in self.__I_4) and F2 - self.__b_up > 2 * self.tol:
+        if (self.__I_0[i2] or self.__I_3[i2] or self.__I_4[i2]) and F2 - self.__b_up > 2 * self.tol:
             optimality = False
             i1 = self.__i_up
         if optimality:
             return 0
         # For i2 in I_0 choose the better i1
-        if i2 in self.__I_0:
+        if self.__I_0[i2]:
             if self.__b_low - F2 > F2 - self.__b_up:
                 i1 = self.__i_low
             else:
@@ -233,19 +232,19 @@ class SVM:
         self.__fcache = np.zeros(y.shape[0])
 
         self.__b_up = -1
-        y1 = (y == 1).nonzero()[0]
-        self.__i_up = y1[0]
-        self.__I_1 = set(y1)
+        y1 = y == 1
+        self.__i_up = y1.nonzero()[0][0]
+        self.__I_1 = y1
 
         self.__b_low = 1
-        y2 = (y == -1).nonzero()[0]
-        self.__i_low = y2[0]
-        self.__I_4 = set(y2)
+        y2 = y == -1
+        self.__i_low = y2.nonzero()[0][0]
+        self.__I_4 = y2
 
         self.__fcache[self.__i_low] = 1
         self.__fcache[self.__i_up] = -1
 
-        self.__I_0, self.__I_2, self.__I_3 = set(), set(), set()
+        self.__I_0, self.__I_2, self.__I_3 = np.zeros(y.shape, bool), np.zeros(y.shape, bool), np.zeros(y.shape, bool)
 
         self.__kernel_func = self.__get_kernel_function(X)
         max_iter = self.max_iter if self.max_iter >= 0 else np.inf
@@ -271,7 +270,7 @@ class SVM:
                 for i in range(y.shape[0]):
                     num_changed += self.__examine_example(i, X, y)
             else:
-                for i in self.__I_0.copy():
+                for i in np.where(self.__I_0)[0]:
                     num_changed += self.__examine_example(i, X, y)
                     if self.__b_up > self.__b_low - 2 * self.tol:
                         num_changed = 0
