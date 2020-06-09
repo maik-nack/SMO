@@ -52,6 +52,7 @@ class SVM:
         self.__threshold = None
         self.support = None
         self.support_vectors = None
+        self.bounded = None
 
     def __get_gamma(self, X):
         if isinstance(self.gamma, float):
@@ -254,6 +255,7 @@ class SVM:
     def __set_result(self, X, y):
         self.support = np.where(self.__alpha > self.__eps)[0]
         self.support_vectors = X[self.support]
+        self.bounded = np.where(self.__alpha >= self.C - self.__eps)[0]
         self.__dual_coef = self.__alpha[self.support] * y[self.support]
         self.__threshold = (self.__b_low + self.__b_up) / 2
         if self.kernel == 'linear':
